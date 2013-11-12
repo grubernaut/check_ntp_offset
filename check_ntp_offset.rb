@@ -1,4 +1,4 @@
-#!/usr/bin/ruby1.8
+#!/usr/bin/ruby
 
 #----------------------------------------------------------------------------------------------------------
 #
@@ -13,6 +13,7 @@ require 'ping'
 require 'rubygems'
 require 'net/ntp'
 require 'time'
+require 'timeout'
 
 def showHelp()
 	puts "USAGE: check_ntp_offset.rb [HOST] [WARN] [CRITICAL]"
@@ -28,37 +29,29 @@ def checkNTPAlive(host)
 end
 
 def retrieveOffset(host)
-	Net::NTP.get("#{host}")
-	time = Time.now().to_i
-	offset = ((Net::NTP.get.receive_timestamp - Net::NTP.get.originate_timestamp) + (Net::NTP.get.transmit_timestamp - time) / 2)
+	Timeout::timeout(5) do
+		Net::NTP.get("#{host}")
+		time = Time.now().to_i
+		offset = ((Net::NTP.get.receive_timestamp - Net::NTP.get.originate_timestamp) + (Net::NTP.get.transmit_timestamp - time) / 2)
+	end
+	rescue Timeout::Error
+		puts "NTP Warning: Offset Unknown. Timout Reached|offset=nil"
+		exit(1)
+		#next 
         return offset
 end
 
 def checkOffset(offset,warn,crit)
-	if ( offset >=0 ) 
-		if (offset >= crit)
-			puts "NTP Critical: Offset #{"%.4f" % offset} secs|offset=#{"%.4f" % offset}"
-			exit(2)
-		elsif (offset >= warn)
-			puts "NTP WARNING: Offset #{"%.4f" % offset} secs|offset=#{"%.4f" % offset}"
-			exit(1)
-		else
-			puts "NTP OK: Offset #{"%.4f" % offset} secs|offset=#{"%.4f" % offset}"
-			exit(0)
-		end
+	if (offset >= crit)
+		puts "NTP Critical: Offset #{"%.4f" % offset} secs|offset=#{"%.4f" % offset}"
+		exit(2)
+	elsif (offset >= warn)
+		puts "NTP WARNING: Offset #{"%.4f" % offset} secs|offset=#{"%.4f" % offset}"
+		exit(1)
 	else
-		if (offset <= crit)	
-			puts "NTP Critical: Offset #{"%.4f" % offset} secs|offset=#{"%.4f" % offset}"
-			exit(2)
-		elsif (offset <= warn)
-			puts "NTP WARNING: Offset #{"%.4f" % offset} secs|offset=#{"%.4f" % offset}"
-			exit(1)
-		else
-			puts "NTP OK: Offset #{"%.4f" % offset} secs|offset=#{"%.4f" % offset}"
-			exit(0)
-		end
+		puts "NTP OK: Offset #{"%.4f" % offset} secs|offset=#{"%.4f" % offset}"
+		exit(0)
 	end
-
 end
 
 options = {}
