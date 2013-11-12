@@ -14,16 +14,6 @@ require 'rubygems'
 require 'net/ntp'
 require 'time'
 
-class Float
-	def precision(p)
-		raise ArgumentError,"#{p} is an invalid precision level. Valid ranges are integers > 0."
-			unless p.class == Fixnum or p < 0
-		end
-		return self.round if p == 0
-		return (self * 10**p).round.to_f / 10**p
-	end
-end
-
 def showHelp()
 	puts "USAGE: check_ntp_offset.rb [HOST] [WARN] [CRITICAL]"
 	puts ""
